@@ -5,7 +5,9 @@
 #
 #    http://shiny.rstudio.com/
 #
-#wrong default charts, fix error message on lag, dark mode check, alter title of chart select (Seasons/Career-or stretch)
+#wrong default charts, fix error message on lag, dark mode check
+#DRUN, RA9pf, remove some pointless stuff from summary? 
+
 library(DT)
 library(tidyverse)
 library(shiny)
@@ -14,10 +16,28 @@ load("ppit.Rdata")
 load("tbat.Rdata")
 load("tpit.Rdata")
 
-pbat <- arrange(pbat,desc(WhAT))
-ppit <- arrange(ppit,desc(WhAT))
-tbat <- arrange(tbat,desc(RC))
-tpit <- arrange(tpit,desc(WhAT))
+s_levels <- c("3","4","5","6","7","8","9","10","11","12","13","14",
+             "15","16","17","18","19","20","21","22","23","24")
+
+pbat <- pbat%>%
+  mutate(season=factor(season,levels=s_levels),
+        team=factor(team),
+        player=factor(player))%>%
+  arrange(desc(WhAT))
+  
+ppit <- ppit%>%
+  mutate(season=factor(season,levels=s_levels),
+         team=factor(team),
+         player=factor(player))%>%
+  arrange(desc(WhAT))
+tbat <- tbat%>%
+  mutate(season=factor(season,levels=s_levels),
+         team=factor(team))%>%
+  arrange(desc(RC))
+tpit <- tpit%>%
+    mutate(season=factor(season,levels=s_levels),
+         team=factor(team))%>%
+  arrange(desc(WhAT))
 
 
 ui <- fluidPage(
@@ -26,9 +46,15 @@ ui <- fluidPage(
     titlePanel("The Compendium of Blaseball Advanced Statistics"),
 
     # options to generate summary stats for players
-    #maybe tell people to filter dataset on the columns
     sidebarLayout(
-        sidebarPanel(
+            sidebarPanel(
+              p(strong("Welcome")),
+              p("The top table contains seasonal statistics for the selected data,
+                and can be filtered and sorted by each column. Those filters are applied
+                to the career table and downloads. View the linked glossary below for details
+                about the calculation of WhAT and other statistics"),
+              a(href="https://www.blaseball.wiki/w/SIBR:Sibrmetrics", "Glossary"),
+              hr(),
             selectInput(
             "tablechoice",
             "Select Data",
@@ -39,8 +65,8 @@ ui <- fluidPage(
             radioButtons(
               "chartchoice",
               "Select Chart:",
-              c("All","Summary"),
-              selected = "All"
+              c("Season","Career"),
+              selected = "Season"
             ),
              uiOutput(
               "xaxis"
@@ -57,26 +83,25 @@ ui <- fluidPage(
           ),
           numericInput(
             "PAmin",
-            "Set minimum PA for Summary Data",
+            "Set minimum PA for Career Data",
             1000,
             0,
             20000,
             100
-          ),
-            dataTableOutput("hovertable")
+          )
           
         ),
     # Show a filtered dataTable and plot based on the filter, also download filtered dataset, and summary dataset
         mainPanel(
             plotOutput("swapplot", hover="hover_select"),
+            dataTableOutput("hovertable"),
             hr(),
-            br(),
-            h1("Seasonal Data"),
+            h1("Seasonal Statistics"),
             dataTableOutput("battingtable"),
             downloadButton("downloadData", "Download"),
             hr(),
             br(),
-            h1("Summary Data"),
+            h1("Career Statistics"),
             dataTableOutput("summarytable"),
             downloadButton("downloadsummary"),
             hr(),
@@ -118,14 +143,14 @@ server <- function(input, output, session) {
                             "H","RA","HR","BB","SO","HBP","PA","ERA","FIP",
                             "WHIP","H/9","HR/9","BB/9","SO/9","SO/BB"),
              "Advanced" = c(
-               "player","season","team","league","G","IP","PA","ERA+","FIP+",
-               "WHIP+","WhAT","WhAT_IP","ERAAA","RA9","RA9avg","RA9opp","DRiP/9",
-               "wBIPA","wBIPAteam","wBIPAopp","fBsR"),
+               "player","season","team","league","G","IP","PA","ERA-","FIP-",
+               "ERA+","FIP+","WhAT","WhAT_IP","ERAAA","RA9","RA9avg","RA9opp",
+               "DRiP/9","wBIPA","wBIPAteam","wBIPAopp","fBsR"),
              "Combination"=c("player","season","team","league","G","SHO","IP",
                              "H","RA","HR","BB","SO","HBP","PA","ERA","FIP",
-                             "WHIP","H/9","HR/9","BB/9","SO/9","SO/BB","ERA+",
-                             "FIP+","WHIP+","WhAT","WhAT_IP","ERAAA","RA9",
-                             "RA9avg","RA9opp","DRiP/9","wBIPA","wBIPAteam",
+                             "WHIP","H/9","HR/9","BB/9","SO/9","SO/BB",
+                             "ERA-","FIP-","ERA+","FIP+","WhAT","WhAT_IP","ERAAA",
+                             "RA9","RA9avg","RA9opp","DRiP/9","wBIPA","wBIPAteam",
                              "wBIPAopp","fBsR","PStars"),
              "Give me everything"= names(in_react_frame())
       )
@@ -155,13 +180,13 @@ server <- function(input, output, session) {
                             "WHIP","H/9","BA","OBP","SLG","OPS"),
              "Advanced" = c(
                "team","season","league","G","IP","PA","DRiP","DRiP/9","WhAT",
-               "WhAT_IP","ERA+","FIP+","WHIP+","RA9opp","wBIPA","wBIPAopp",
+               "WhAT_IP","ERA-","FIP-","ERA+","FIP+","WHIP+","RA9opp","wBIPA","wBIPAopp",
                "fBsR","wSB","wGDP","UBR"),
              "Combination"= c("team","season","league","G","SHO","IP",
                               "H","RA","1B","2B","3B","4B","HR","BB","SO",
                               "SB","CS","DP","PA","DER","BABIP","ERA","FIP",
                               "WHIP","H/9","BA","OBP","SLG","OPS","DRiP",
-                              "DRiP/9","WhAT", "WhAT_IP","ERA+","FIP+","WHIP+",
+                              "DRiP/9","WhAT", "WhAT_IP","ERA-","FIP-","ERA+","FIP+","WHIP+",
                               "RA9opp","wBIPA","wBIPAopp","fBsR","wSB","wGDP",
                               "UBR"),
              "Give me everything"= names(in_react_frame())
@@ -182,18 +207,18 @@ server <- function(input, output, session) {
                   "SO/BB","WhAT_IP","ERAAA","RA9","RA9avg","RA9opp","DRiP/9","fBsR","PStars","OHERA",
                   "DER","SW+MISS","S%","B%","CS%","SW%","F%","tfdRUNSsaved","twBIPAsaved",
                   "BAT%","C/S%","SW/S%","XBHIP%","BABIPp","BAT_Srt","BB_9p","C_SWING","C_Swrt","cfdRUNSsaved","cwBIPAsaved",
-                  "defense_rating","DERp","dRPW","F_Srt","FDRA","fdRUNSsaved","FLY","FLYrt","Frtp","GROUNDER","GROUNDrt","Grtp","wBIPAsaved",
-                  "GtoF","GtoFp","H_9p","HIUP","HR_9p","HR_H","HR_Hp","HRrt","HRrtp","RAA_TUN","wBIPAcomp","
-                  wBIPAsaved","WhAT_TUN","wTUN","XBHIPpp","DRiP_PA")
+                  "defense_rating","DER+","dRPW","F_Srt","FDRA","fdRUNSsaved","FLYrt","Frtp","GROUNDrt","Grtp","wBIPAsaved",
+                  "GtoF","GtoFp","H_9p","HR_9p","HR_H","HR_Hp","HRrt","HRrtp","RAA_TUN","wBIPAcomp","
+                  wBIPAsaved","WhAT_TUN","wTUN","XBHIPpp","DRiP_PA","ERA-","FIP-")
     
     round_list <- c(
       "RBI","IP","R","BsR","wSB","wRC","BATR","WAA","WhAT","WhAT_PA","DRiP","wRAA","ER","RAA","RAT","RAT_TUN","OHRA","RA",
-      "WhAT_DRiP","RS","R/G","R/9","RC","RC/G"
+      "WhAT_DRiP","RS","R/G","R/9","RC","RC/G","DRUNS","HIUP", "HIP"
     )
     
     int_list <- c("PA","AB","H","1B","2B","3B","4B","HR","TB","SO","BB","HBP","SAC","RBI","SB","CS","GDP","GDPopps","HR4","HR5","Out",
                   "FC","TSO","TBB","SOCH","BBCH","SOMT","BBMT","BASEBB","G","SHO","STRIKES","BALLS","CALLED","SWINGING","FOULS","BATTED","BIP",
-                  "DP","OUTS","PITCHES","T_RUN","U_O","R_SWEPT","SEC_Ent","SEC_Ex","DRiP_PA","HIP","BIPteam")
+                  "DP","OUTS","PITCHES","T_RUN","U_O","R_SWEPT","SEC_Ent","SEC_Ex","BIPteam")
     
     char_list <- c("player","team","league","season","id","batter_team_id","pitcher_team_id")
     
@@ -236,15 +261,12 @@ server <- function(input, output, session) {
              "Team Offense"= "team",
              "Team Defense"= "team")
     })
-    getmode <- function(v) {
-      uniqv <- unique(v)
-      uniqv[which.max(tabulate(match(v, uniqv)))]
-    }
+
     summary_data <- reactive({
         req(grouper())
         filtered_frame()%>%
            group_by(!!!rlang::syms(grouper()))%>%
-          summarise(
+            summarise(
             G={if("G"%in%names(.))sum(G, na.rm = TRUE)else NULL},
             SHO={if("SHO"%in%names(.))sum(SHO, na.rm = TRUE)else NULL},
             IP={if("IP"%in%names(.))sum(IP, na.rm = TRUE)else NULL},
@@ -260,6 +282,8 @@ server <- function(input, output, session) {
             "HR/9"={if("HR/9"%in%names(.)) weighted.mean(.data[["HR/9"]],PA,na.rm = TRUE) else NULL},
             "BB/9"={if("BB/9"%in%names(.)) weighted.mean(.data[["BB/9"]],PA,na.rm = TRUE) else NULL},
             "SO/9"={if("SO/9"%in%names(.)) weighted.mean(.data[["SO/9"]],PA,na.rm = TRUE) else NULL},
+            "ERA-"={if("ERA-"%in%names(.)) weighted.mean(.data[["ERA-"]],PA,na.rm = TRUE) else NULL},
+            "FIP-"={if("FIP-"%in%names(.)) weighted.mean(.data[["FIP-"]],PA,na.rm = TRUE) else NULL},
             "ERA+"={if("ERA+"%in%names(.)) weighted.mean(.data[["ERA+"]],PA,na.rm = TRUE) else NULL},
             "FIP+"={if("FIP+"%in%names(.)) weighted.mean(.data[["FIP+"]],PA,na.rm = TRUE) else NULL},
             "WHIP+"={if("WHIP+"%in%names(.)) weighted.mean(.data[["WHIP+"]],PA,na.rm = TRUE) else NULL},
@@ -347,6 +371,7 @@ server <- function(input, output, session) {
             "BAT%"={if("BAT%"%in%names(.)) weighted.mean(.data[["BAT%"]],PA,na.rm = TRUE) else NULL},
             "C/S%"={if("C/S%"%in%names(.)) weighted.mean(.data[["C/S%"]],PA,na.rm = TRUE) else NULL},
             "SW/S%"={if("SW/S%"%in%names(.)) weighted.mean(.data[["SW/S%"]],PA,na.rm = TRUE) else NULL},
+            "DER+"={if("DER+"%in%names(.)) weighted.mean(.data[["DER+"]],PA,na.rm = TRUE) else NULL},
             BIP={if("BIP"%in%names(.))sum(BIP, na.rm = TRUE)else NULL},
             "XBHIP%"={if("XBHIP%"%in%names(.)) weighted.mean(.data[["XBHIP%"]],PA,na.rm = TRUE) else NULL},
             PF={if("PF"%in%names(.)) weighted.mean(PF,PA,na.rm = TRUE) else NULL},
@@ -370,7 +395,6 @@ server <- function(input, output, session) {
             cfdRUNSsaved={if("cfdRUNSsaved"%in%names(.))sum(cfdRUNSsaved, na.rm = TRUE)else NULL},
             cwBIPAsaved ={if("cwBIPAsaved"%in%names(.))sum(cwBIPAsaved, na.rm = TRUE)else NULL},
             defense_rating={if("defense_rating"%in%names(.)) weighted.mean(defense_rating,PA,na.rm = TRUE) else NULL},
-            DERp={if("DERp"%in%names(.)) weighted.mean(DERp,PA,na.rm = TRUE) else NULL},
             DP={if("DP"%in%names(.))sum(DP, na.rm = TRUE)else NULL},
             F_Srt={if("F_Srt"%in%names(.)) weighted.mean(F_Srt,PA,na.rm = TRUE) else NULL},
             FDRA={if("FDRA"%in%names(.))sum(FDRA, na.rm = TRUE)else NULL},
@@ -418,19 +442,17 @@ server <- function(input, output, session) {
             "AB/HR"={if("AB/HR"%in%names(.)) AB/HR else NULL},
             "BB/SO"={if("BB/SO"%in%names(.)) BB/SO else NULL},
             PA={if("PA"%in%names(.))sum(PA, na.rm = TRUE)else NULL},
-            team={if("team"%in%names(.)) getmode(team) else NULL},
             id={if("id"%in%names(.))first(id) else NULL}
             )%>%
           filter(PA>input$PAmin)
         })
-   sumcolsel<-  reactive({
-      columnsel()[!(columnsel()%in% c("season","league","batter_team_id","pitcher_team_id"))]
+
+    summary_data_sort<-  reactive({
+      index <- match(names(filtered_frame()),names(summary_data())) 
+      index <- index[!is.na(index)]
+      summary_data()[index]
     })  
     
-    summary_data_sort <- reactive({
-      summary_data()[sumcolsel()]
-    })
-  
     #create output from summary reactive dataframe
     output$summarytable <- renderDT(
       datatable(
@@ -449,7 +471,7 @@ server <- function(input, output, session) {
       )
     #create ui for plot, swap selectInput if chart when toggled
     output$xaxis <- renderUI({
-      if (input$chartchoice == "All") {
+      if (input$chartchoice == "Season") {
         selectInput("x", 
                     "Chart X Axis", 
                     choices=names(filtered_frame()),
@@ -462,7 +484,7 @@ server <- function(input, output, session) {
       }
     })
     output$yaxis <- renderUI({
-      if (input$chartchoice == "All") {
+      if (input$chartchoice == "Season") {
         selectInput("y",
                     "Chart Y Axis",
                     choices=names(filtered_frame()),
@@ -478,8 +500,8 @@ server <- function(input, output, session) {
     plotchoice <- reactive({
       switch(
         input$chartchoice,
-        All = filtered_frame(),
-        Summary = summary_data_sort()
+        Season = filtered_frame(),
+        Career = summary_data_sort()
       )
     })
     xinput <- reactive({
@@ -493,15 +515,18 @@ server <- function(input, output, session) {
     })
     
     hovercols <- reactive({
-      c(grouper(),input$x,input$y)
+    switch(
+       input$chartchoice,
+       Season = c(grouper(),"season",input$x,input$y),
+       Career = c(grouper(),input$x,input$y)
+          )
       })
 
     #create datatable from hoverinfo: need to fix how hovertable rounds data
     hoveredDT <- reactive({
       req(input$hover_select)
-      nearPoints(plotchoice(), input$hover_select) %>%
-        ungroup()%>%
-        select(all_of(hovercols()))
+      frame <- nearPoints(plotchoice(), input$hover_select,maxpoints = 1)
+      frame[,hovercols(),drop=FALSE]       
     })
     hover_list  <- reactive({
       hoveredDT()%>%
@@ -509,13 +534,13 @@ server <- function(input, output, session) {
         colnames()
     })
     
-    output$hovertable <- renderDataTable(datatable(hoveredDT(),
-                                                   class="compact display",
-                                                   options = list(
-                                                     searching=FALSE,
-                                                     paging=FALSE,
-                                                     columnDefs = list(
-                                                       list(className = 'dt-center', width = "25px", targets = "_all")
+    output$hovertable <- renderDataTable(datatable(hoveredDT()[,hovercols(),drop=FALSE],
+                                        class="compact display",
+                                        options = list(
+                                        searching=FALSE,
+                                        paging=FALSE,
+                                        columnDefs = list(
+                                        list(className = 'dt-center', width = "25px", targets = "_all")
                                                    )
                                                   ),
                                                    rownames=FALSE
