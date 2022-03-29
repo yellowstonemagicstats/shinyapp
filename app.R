@@ -5,7 +5,7 @@
 #
 #    http://shiny.rstudio.com/
 #
-#wrong default charts, fix error message on lag, dark mode check
+#wrong default charts, dark mode check
 #DRUN, RA9pf, remove some pointless stuff from summary? 
 
 library(DT)
